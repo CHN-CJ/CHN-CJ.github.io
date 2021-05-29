@@ -148,6 +148,153 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-数据库封锁" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2021/05/29/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B0%81%E9%94%81/">数据库封锁</a>
+    </h1>
+  
+
+        
+        <a href="/2021/05/29/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B0%81%E9%94%81/" class="archive-article-date">
+  	<time datetime="2021-05-29T13:57:09.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-29</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h3 id="数据库封锁"><a href="#数据库封锁" class="headerlink" title="数据库封锁"></a>数据库封锁</h3><hr>
+
+<p>数据库实现并发控制的主要方法：封锁</p>
+<h4 id="基本封锁类型"><a href="#基本封锁类型" class="headerlink" title="基本封锁类型"></a>基本封锁类型</h4><p>排它锁（简记为X锁）</p>
+<p>共享锁（简记为S锁）</p>
+<hr>
+
+<h5 id="排它锁"><a href="#排它锁" class="headerlink" title="排它锁"></a>排它锁</h5><ul>
+<li><p>排它锁又称写锁，简称为X锁，采用原理是禁止并发。（可以理解为不能同时去使用被锁的数据对象）</p>
+</li>
+<li><p>若事务T对数据对象A加上X锁，则只允许T读取和修改A，其它任何事务都不能再对A加任何类型的锁，直到T释放A上的锁 。</p>
+<ul>
+<li>当事务T对数据对象A加上X锁后，<strong>其他事务不能加任何类型的锁</strong></li>
+<li>T能读取和修改A</li>
+</ul>
+</li>
+<li><p>保证其他事务在T释放A上的锁之前，<u>不能再读取和修改A</u> 。</p>
+</li>
+</ul>
+<hr>
+
+<h5 id="共享锁"><a href="#共享锁" class="headerlink" title="共享锁"></a>共享锁</h5><ul>
+<li><p>共享锁又称读锁，简称为S锁，采用原理是允许其它用户对同一数据对象进行查询，但不能对该数据对象进行修改。</p>
+</li>
+<li><p>若事务T对数据对象A加上S锁，则事务T可以读A但不能修改A，其它事务只能再对A加S锁，而不能加 X锁，直到T释放A上的S锁 。</p>
+<ul>
+<li>当事务T对数据对象A加上S锁后，<strong>其他事务只能对A加上S锁</strong>，而不能加上X锁</li>
+<li>事务T只能读A但不能修改A</li>
+</ul>
+</li>
+<li><p><u>保证其他事务可以读A</u>，但在T释放A上的S锁之前不能对A做任何修改 。</p>
+</li>
+</ul>
+<hr>
+
+<h4 id="封锁协议"><a href="#封锁协议" class="headerlink" title="封锁协议"></a>封锁协议</h4><p>在运用X锁和S锁对数据对象加锁时，需要约定一些规则， 这些规则为封锁协议（Locking Protocol）</p>
+<ul>
+<li>何时申请X锁或S锁 </li>
+<li>持锁时间 </li>
+<li>何时释放 </li>
+</ul>
+<p>对封锁方式规定不同的规则，就形成了各种不同的封锁协议，它们分别在不同的程度上为并发操作的正确调度提供一定的保证。</p>
+<h5 id="三级的封锁协议"><a href="#三级的封锁协议" class="headerlink" title="三级的封锁协议"></a>三级的封锁协议</h5><ul>
+<li>一级封锁协议</li>
+<li>二级封锁协议</li>
+<li>三级封锁协议</li>
+</ul>
+<hr>
+
+<h5 id="一级封锁协议"><a href="#一级封锁协议" class="headerlink" title="一级封锁协议"></a>一级封锁协议</h5><p>事务T在修改数据R之前必须先对其加X锁，直到事务结束才释放。</p>
+<p>具体地说，就是任何企图更新记录R的事务必须先执行“XLOCK R”操作，以获得对该记录进行寻址的能力并对它取得X封锁。如果未获准“X 封锁”，那么这个事务进入等待状态，一直到获准“X封锁”，该事务才继续做下去。</p>
+<p>该事务规定事务在更新记录R时必须获得排它性封锁，使得两个同时要求更新R的并行事务之一必须在一个事务更新操作执行完成之后才能获得X封锁，这样就避免了两个事务读到同一个R值而先后更新时所发生的丢失更新问题。</p>
+<hr>
+
+<p>利用一级封锁协议可以解决数据丢失更新问题：</p>
+<p><img src="/.com//image-20210529214159056.png"></p>
+<p>一级封锁协议只有当修改数据时才进行加锁，如果只是读取数据并不加锁，所以它不能防止“脏读”和“重读”数据。</p>
+<hr>
+
+<h5 id="二级封锁协议"><a href="#二级封锁协议" class="headerlink" title="二级封锁协议"></a>二级封锁协议</h5><p>内容是：在一级封锁协议的基础上，另外加上事务T在读取数据R之前必须先对其加S锁，读完后释放S锁。<br>二级封锁协议不但可以解决更新时所发生的数据丢失问题，还可以进一步解决数据“脏读”问题。</p>
+<img src="/.com//Typora\assets\image-20210529215305505.png" alt="image-20210529215305505" style="zoom:80%;">
+
+<p>二级封锁协议在读取数据之后，立即释放S锁，所以它仍然不能防止“不可重读”数据。</p>
+<hr>
+
+<h5 id="三级封锁协议"><a href="#三级封锁协议" class="headerlink" title="三级封锁协议"></a>三级封锁协议</h5><p>内容是：在一级封锁协议的基础上，另外加上事务T在读取数据R之前必须先对其加S锁，读完后并不释放S锁，而直到事务T结束才释放。</p>
+<p>三级封锁协议除了可以防止更新丢失问题和“脏读”数据外，还可进一步防止不可重读数据，彻底解决了并发操作所带来的三个不一致性问题。<br>利用三级封锁协议可以解决不可重读问题。</p>
+<img src="/.com//Typora\assets\image-20210529215556561.png" alt="image-20210529215556561" style="zoom:80%;">
+
+
+
+<hr>
+
+<p><img src="/.com//Typora/assets/image-20210529215947458.png" alt="image-20210529215947458"></p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">数据库</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2021/05/29/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B0%81%E9%94%81/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-dp详解" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -168,9 +315,9 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h2 id="第一章"><a href="#第一章" class="headerlink" title="第一章"></a>第一章</h2><p>内容</p>
+        <h2 id="第一章"><a href="#第一章" class="headerlink" title="第一章"></a>第一章</h2><p>博客设置弄了蛮久，准备第一次写博客了，这次想写一下dp，动态规划这一部分。很难写，而且估计得修修改改很多次</p>
 <hr>
-<h2 id="第二章"><a href="#第二章" class="headerlink" title="第二章"></a>第二章</h2><p>内容</p>
+<h2 id="第二章"><a href="#第二章" class="headerlink" title="第二章"></a>第二章</h2><p>不是很希望很大的标题</p>
 <hr>
 <h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2>
       
@@ -401,6 +548,10 @@ MathJax.Hub.Queue(function() {
             <input type="checkbox" q-on="click:toggleTag(e)" q-attr="checked:showTags">
           </label>
           <ul class="article-tag-list" q-show="showTags">
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">数据库</a>
+              </li>
             
             <div class="clearfix"></div>
           </ul>
